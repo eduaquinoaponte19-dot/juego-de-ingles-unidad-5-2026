@@ -34,6 +34,7 @@
             overflow: hidden;
         }
 
+        /* FIX: El pseudo-elemento decorativo no debe bloquear los clicks */
         .game-container::before {
             content: '';
             position: absolute;
@@ -43,6 +44,8 @@
             height: 200%;
             background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
             animation: rotate 20s linear infinite;
+            pointer-events: none; /* ← ESTO SOLUCIONA EL PROBLEMA DE LOS CLICKS */
+            z-index: 0;
         }
 
         @keyframes rotate {
@@ -85,6 +88,8 @@
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin: 40px 0;
+            position: relative;
+            z-index: 1;
         }
 
         .player-card {
@@ -111,17 +116,24 @@
             background: rgba(255,255,255,0.9);
             color: #333;
             transition: all 0.3s;
+            position: relative;
+            z-index: 2;
         }
 
         .player-card input:focus {
             outline: none;
             background: white;
             transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
+        /* Player 2 ahora usa color naranja/ámbar en vez de rosa */
         .player-card.player2 {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            background: linear-gradient(135deg, #ff9966 0%, #ff5e62 100%);
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+            box-shadow: 0 10px 30px rgba(247, 151, 30, 0.3);
         }
 
         .instructions {
@@ -130,6 +142,8 @@
             border-radius: 15px;
             margin: 30px 0;
             text-align: left;
+            position: relative;
+            z-index: 1;
         }
 
         .instructions h3 {
@@ -159,6 +173,8 @@
             letter-spacing: 1px;
             display: block;
             margin: 30px auto;
+            position: relative;
+            z-index: 2;
         }
 
         .btn:hover {
@@ -205,7 +221,7 @@
         }
 
         .turn-indicator.player2-turn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
         }
 
         .timer-display {
@@ -370,7 +386,7 @@
         }
 
         .player-stats.player2 {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
         }
 
         .player-stats h3 {
@@ -442,10 +458,6 @@
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             transition: width 0.5s ease;
             border-radius: 10px;
-        }
-
-        .progress-fill.player2 {
-            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
         }
 
         .hidden {
@@ -540,7 +552,7 @@
                 </ul>
             </div>
 
-            <button class="btn" onclick="startGame()">Start Duel</button>
+            <button class="btn" id="startBtn" onclick="startGame()">Start Duel</button>
         </div>
 
         <!-- Game Screen -->
@@ -643,107 +655,126 @@
     <script>
         // Sound System
         let soundEnabled = true;
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioContext = null;
+
+        function initAudio() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.error('Audio not supported:', e);
+                }
+            }
+        }
 
         function playSound(type) {
             if (!soundEnabled) return;
+            initAudio();
+            if (!audioContext) return;
 
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+            try {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
 
-            switch(type) {
-                case 'start':
-                    oscillator.frequency.value = 440;
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
-                    break;
-                    
-                case 'correct':
-                    oscillator.frequency.value = 523.25; // C5
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    
-                    setTimeout(() => {
-                        const osc2 = audioContext.createOscillator();
-                        const gain2 = audioContext.createGain();
-                        osc2.connect(gain2);
-                        gain2.connect(audioContext.destination);
-                        osc2.frequency.value = 659.25; // E5
-                        gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
-                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                        osc2.start(audioContext.currentTime);
-                        osc2.stop(audioContext.currentTime + 0.2);
-                    }, 150);
-                    break;
-                    
-                case 'incorrect':
-                    oscillator.type = 'sawtooth';
-                    oscillator.frequency.value = 200;
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.4);
-                    break;
-                    
-                case 'click':
-                    oscillator.frequency.value = 800;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.1);
-                    break;
-                    
-                case 'stop':
-                    oscillator.frequency.value = 300;
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    break;
-                    
-                case 'win':
-                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-                    notes.forEach((freq, i) => {
+                switch(type) {
+                    case 'start':
+                        oscillator.frequency.value = 440;
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                        break;
+                        
+                    case 'correct':
+                        oscillator.frequency.value = 523.25;
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.2);
+                        
                         setTimeout(() => {
-                            const osc = audioContext.createOscillator();
-                            const gain = audioContext.createGain();
-                            osc.connect(gain);
-                            gain.connect(audioContext.destination);
-                            osc.frequency.value = freq;
-                            gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-                            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                            osc.start(audioContext.currentTime);
-                            osc.stop(audioContext.currentTime + 0.3);
-                        }, i * 150);
-                    });
-                    break;
-                    
-                case 'switch':
-                    oscillator.frequency.value = 440;
-                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.15);
-                    
-                    setTimeout(() => {
-                        const osc2 = audioContext.createOscillator();
-                        const gain2 = audioContext.createGain();
-                        osc2.connect(gain2);
-                        gain2.connect(audioContext.destination);
-                        osc2.frequency.value = 554.37; // C#5
-                        gain2.gain.setValueAtTime(0.2, audioContext.currentTime);
-                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                        osc2.start(audioContext.currentTime);
-                        osc2.stop(audioContext.currentTime + 0.15);
-                    }, 100);
-                    break;
+                            if (!audioContext) return;
+                            const osc2 = audioContext.createOscillator();
+                            const gain2 = audioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(audioContext.destination);
+                            osc2.frequency.value = 659.25;
+                            gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                            osc2.start(audioContext.currentTime);
+                            osc2.stop(audioContext.currentTime + 0.2);
+                        }, 150);
+                        break;
+                        
+                    case 'incorrect':
+                        oscillator.type = 'sawtooth';
+                        oscillator.frequency.value = 200;
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.4);
+                        break;
+                        
+                    case 'click':
+                        oscillator.frequency.value = 800;
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                        break;
+                        
+                    case 'stop':
+                        oscillator.frequency.value = 300;
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.2);
+                        break;
+                        
+                    case 'win':
+                        const notes = [523.25, 659.25, 783.99, 1046.50];
+                        notes.forEach((freq, i) => {
+                            setTimeout(() => {
+                                if (!audioContext) return;
+                                const osc = audioContext.createOscillator();
+                                const gain = audioContext.createGain();
+                                osc.connect(gain);
+                                gain.connect(audioContext.destination);
+                                osc.frequency.value = freq;
+                                gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                                gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                                osc.start(audioContext.currentTime);
+                                osc.stop(audioContext.currentTime + 0.3);
+                            }, i * 150);
+                        });
+                        break;
+                        
+                    case 'switch':
+                        oscillator.frequency.value = 440;
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.15);
+                        
+                        setTimeout(() => {
+                            if (!audioContext) return;
+                            const osc2 = audioContext.createOscillator();
+                            const gain2 = audioContext.createGain();
+                            osc2.connect(gain2);
+                            gain2.connect(audioContext.destination);
+                            osc2.frequency.value = 554.37;
+                            gain2.gain.setValueAtTime(0.2, audioContext.currentTime);
+                            gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                            osc2.start(audioContext.currentTime);
+                            osc2.stop(audioContext.currentTime + 0.15);
+                        }, 100);
+                        break;
+                }
+            } catch (e) {
+                console.error('Error playing sound:', e);
             }
         }
 
@@ -888,6 +919,7 @@
         ];
 
         function startGame() {
+            initAudio();
             playSound('start');
             
             player1.name = document.getElementById('player1Name').value.trim() || 'Player 1';
