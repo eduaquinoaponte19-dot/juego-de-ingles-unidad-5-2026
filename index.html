@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Niño 2-Player Climate Duel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            max-width: 1000px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.6s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            color: #1e3c72;
+            font-size: 2.8em;
+            margin-bottom: 10px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.2em;
+        }
+
+        .players-setup {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .player-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .player-card h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .player-card input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .player-card input:focus {
+            outline: none;
+            background: white;
+            transform: scale(1.02);
+        }
+
+        .player-card.player2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.3);
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .instructions ul {
+            color: #666;
+            line-height: 2;
+            list-style-position: inside;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 45px;
+            font-size: 1.2em;
+            border-radius: 35px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: block;
+            margin: 30px auto;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(-1px);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #f5576c 0%, #ff6b6b 100%);
+            box-shadow: 0 8px 20px rgba(245, 87, 108, 0.4);
+            font-size: 1.5em;
+            padding: 25px 60px;
+            animation: pulseBtn 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseBtn {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .btn-stop:hover {
+            animation: none;
+            transform: translateY(-3px) scale(1.05);
+        }
+
+        .game-screen {
+            position: relative;
+            z-index: 1;
+        }
+
+        .turn-indicator {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .turn-indicator.player2-turn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .timer-display {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .timer-big {
+            font-size: 5em;
+            font-weight: bold;
+            color: #1e3c72;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.1);
+            font-family: 'Courier New', monospace;
+        }
+
+        .timer-big.running {
+            color: #28a745;
+            animation: timerPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes timerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .timer-big.stopped {
+            color: #dc3545;
+        }
+
+        .question-display {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 20px;
+            padding: 35px;
+            margin: 25px 0;
+            border-left: 6px solid #667eea;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .question-number {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            font-size: 1.8em;
+            color: #333;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .answer-section {
+            background: white;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            min-height: 100px;
+            font-size: 1.3em;
+            color: #333;
+            transition: all 0.3s;
+        }
+
+        .answer-section.active {
+            border-color: #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .mic-section {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .mic-button {
+            font-size: 4em;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .mic-button:hover {
+            transform: scale(1.1);
+        }
+
+        .mic-button.listening {
+            background: linear-gradient(135deg, #f5576c 0%, #ff6b6b 100%);
+            animation: micPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes micPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4); }
+            50% { transform: scale(1.1); box-shadow: 0 15px 40px rgba(245, 87, 108, 0.6); }
+        }
+
+        .feedback {
+            margin-top: 25px;
+            padding: 25px;
+            border-radius: 15px;
+            display: none;
+            animation: slideUp 0.4s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid #28a745;
+            color: #155724;
+        }
+
+        .feedback.incorrect {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .feedback h3 {
+            font-size: 1.5em;
+            margin-bottom: 15px;
+        }
+
+        .feedback p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .stats-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 40px 0;
+        }
+
+        .player-stats {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .player-stats.player2 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .player-stats h3 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .stat-item h4 {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-item p {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .winner-banner {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%);
+            color: #2d3436;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 15px 40px rgba(253, 203, 110, 0.4);
+            animation: winnerGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes winnerGlow {
+            0%, 100% { box-shadow: 0 15px 40px rgba(253, 203, 110, 0.4); }
+            50% { box-shadow: 0 20px 60px rgba(253, 203, 110, 0.6); }
+        }
+
+        .winner-banner h2 {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .winner-banner .trophy {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        .progress-section {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            gap: 20px;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 15px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .progress-fill.player2 {
+            background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .question-progress {
+            text-align: center;
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .sound-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transition: all 0.3s;
+        }
+
+        .sound-toggle:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 25px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .players-setup {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-comparison {
+                grid-template-columns: 1fr;
+            }
+            
+            .question-text {
+                font-size: 1.4em;
+            }
+            
+            .timer-big {
+                font-size: 3.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+
+    <div class="game-container">
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="header">
+                <h1>🌊 El Niño Climate Duel</h1>
+                <p>2-Player Voice Challenge</p>
+            </div>
+
+            <div class="players-setup">
+                <div class="player-card">
+                    <h3>🎮 Player 1</h3>
+                    <input type="text" id="player1Name" placeholder="Enter name..." value="Player 1" maxlength="20">
+                </div>
+                <div class="player-card player2">
+                    <h3>🎮 Player 2</h3>
+                    <input type="text" id="player2Name" placeholder="Enter name..." value="Player 2" maxlength="20">
+                </div>
+            </div>
+
+            <div class="instructions">
+                <h3>📋 How to Play:</h3>
+                <ul>
+                    <li>🎤 <strong>Player 1</strong> reads the question aloud to <strong>Player 2</strong></li>
+                    <li>🗣️ <strong>Player 2</strong> answers by speaking into the microphone</li>
+                    <li>⏱️ When Player 2 finishes answering, press <strong>STOP TIMER</strong></li>
+                    <li>✅ Correct answers save time, wrong answers add 10 seconds penalty</li>
+                    <li>🔄 After 7 questions, players switch roles</li>
+                    <li>🏆 The player with the <strong>fastest total time</strong> wins!</li>
+                </ul>
+            </div>
+
+            <button class="btn" onclick="startGame()">Start Duel</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div class="game-screen hidden" id="gameScreen">
+            <div class="header">
+                <h1>🌊 Climate Duel</h1>
+                <p>Answer fast, win big!</p>
+            </div>
+
+            <div class="turn-indicator" id="turnIndicator">
+                <span id="readerName">Player 1</span> reads to <span id="answererName">Player 2</span>
+            </div>
+
+            <div class="question-progress">
+                Question <span id="currentQuestion">1</span> of 7
+            </div>
+
+            <div class="progress-section">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="timer-display">
+                <div class="timer-big" id="timerDisplay">00:00.0</div>
+            </div>
+
+            <div class="question-display">
+                <div class="question-number" id="questionNumber">Question 1</div>
+                <div class="question-text" id="questionText"></div>
+            </div>
+
+            <div class="mic-section">
+                <button class="mic-button" id="micButton" onclick="toggleListening()">🎤</button>
+                <p style="margin-top: 15px; color: #666; font-size: 1.1em;" id="micStatus">Click to start speaking</p>
+            </div>
+
+            <div class="answer-section" id="answerSection">
+                Your answer will appear here...
+            </div>
+
+            <button class="btn btn-stop hidden" id="stopBtn" onclick="stopTimer()">⏹️ STOP TIMER</button>
+
+            <div class="feedback" id="feedback"></div>
+
+            <button class="btn hidden" id="nextBtn" onclick="nextQuestion()">Next Question</button>
+        </div>
+
+        <!-- Results Screen -->
+        <div class="results-screen hidden" id="resultsScreen">
+            <div class="header">
+                <h1>🏆 Final Results</h1>
+                <p>See who's the climate champion!</p>
+            </div>
+
+            <div class="winner-banner" id="winnerBanner">
+                <div class="trophy">🏆</div>
+                <h2 id="winnerName">Winner!</h2>
+                <p id="winnerMessage">Congratulations!</p>
+            </div>
+
+            <div class="stats-comparison">
+                <div class="player-stats" id="player1Stats">
+                    <h3 id="player1FinalName">Player 1</h3>
+                    <div class="stat-item">
+                        <h4>Total Time</h4>
+                        <p id="player1Time">0:00</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Correct Answers</h4>
+                        <p id="player1Correct">0/7</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Penalties</h4>
+                        <p id="player1Penalties">0s</p>
+                    </div>
+                </div>
+
+                <div class="player-stats player2" id="player2Stats">
+                    <h3 id="player2FinalName">Player 2</h3>
+                    <div class="stat-item">
+                        <h4>Total Time</h4>
+                        <p id="player2Time">0:00</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Correct Answers</h4>
+                        <p id="player2Correct">0/7</p>
+                    </div>
+                    <div class="stat-item">
+                        <h4>Penalties</h4>
+                        <p id="player2Penalties">0s</p>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        // Sound System
+        let soundEnabled = true;
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            switch(type) {
+                case 'start':
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                    
+                case 'correct':
+                    oscillator.frequency.value = 523.25; // C5
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    
+                    setTimeout(() => {
+                        const osc2 = audioContext.createOscillator();
+                        const gain2 = audioContext.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioContext.destination);
+                        osc2.frequency.value = 659.25; // E5
+                        gain2.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                        osc2.start(audioContext.currentTime);
+                        osc2.stop(audioContext.currentTime + 0.2);
+                    }, 150);
+                    break;
+                    
+                case 'incorrect':
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.value = 200;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.4);
+                    break;
+                    
+                case 'click':
+                    oscillator.frequency.value = 800;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'stop':
+                    oscillator.frequency.value = 300;
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+                    
+                case 'win':
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    notes.forEach((freq, i) => {
+                        setTimeout(() => {
+                            const osc = audioContext.createOscillator();
+                            const gain = audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioContext.destination);
+                            osc.frequency.value = freq;
+                            gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                            osc.start(audioContext.currentTime);
+                            osc.stop(audioContext.currentTime + 0.3);
+                        }, i * 150);
+                    });
+                    break;
+                    
+                case 'switch':
+                    oscillator.frequency.value = 440;
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    
+                    setTimeout(() => {
+                        const osc2 = audioContext.createOscillator();
+                        const gain2 = audioContext.createGain();
+                        osc2.connect(gain2);
+                        gain2.connect(audioContext.destination);
+                        osc2.frequency.value = 554.37; // C#5
+                        gain2.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                        osc2.start(audioContext.currentTime);
+                        osc2.stop(audioContext.currentTime + 0.15);
+                    }, 100);
+                    break;
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) {
+                playSound('click');
+            }
+        }
+
+        // Game State
+        let player1 = { name: 'Player 1', totalTime: 0, correctAnswers: 0, penalties: 0 };
+        let player2 = { name: 'Player 2', totalTime: 0, correctAnswers: 0, penalties: 0 };
+        let currentPlayer = 1;
+        let currentQuestionIndex = 0;
+        let timerInterval = null;
+        let startTime = 0;
+        let elapsedTime = 0;
+        let isTimerRunning = false;
+        let recognition = null;
+        let isListening = false;
+        let currentAnswer = '';
+        let questions = [];
+        let roundQuestions = [];
+
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                currentAnswer = finalTranscript || interimTranscript;
+                document.getElementById('answerSection').textContent = currentAnswer || 'Listening...';
+                document.getElementById('answerSection').classList.add('active');
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+                document.getElementById('micStatus').textContent = 'Error: ' + event.error + '. Please try again.';
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Error restarting recognition:', e);
+                    }
+                }
+            };
+        }
+
+        // Questions Database
+        const allQuestions = [
+            {
+                question: "What is El Niño?",
+                keywords: ["warming", "pacific", "ocean", "climate", "phenomenon", "temperature"],
+                explanation: "El Niño is a natural climate phenomenon characterized by the abnormal warming of surface waters in the tropical Pacific Ocean."
+            },
+            {
+                question: "Why is it called 'El Niño'?",
+                keywords: ["christmas", "baby jesus", "peruvian", "fishermen", "december", "child"],
+                explanation: "It's called 'El Niño' (The Child) because Peruvian fishermen noticed this phenomenon around Christmas time, associating it with the Baby Jesus."
+            },
+            {
+                question: "How is El Niño formed?",
+                keywords: ["trade winds", "weaken", "warm water", "east", "pacific", "atmospheric"],
+                explanation: "El Niño forms when trade winds weaken, allowing warm waters from the western Pacific to move eastward, accumulating off the coast of South America."
+            },
+            {
+                question: "Where does El Niño occur?",
+                keywords: ["pacific", "tropical", "equatorial", "central", "eastern", "ocean"],
+                explanation: "El Niño occurs primarily in the tropical Pacific Ocean, especially in the central and eastern equatorial Pacific regions."
+            },
+            {
+                question: "When does El Niño reach its peak intensity?",
+                keywords: ["november", "january", "winter", "december"],
+                explanation: "El Niño typically reaches peak intensity between November and January."
+            },
+            {
+                question: "How often does El Niño occur?",
+                keywords: ["2", "7", "years", "irregular", "frequency"],
+                explanation: "El Niño occurs irregularly every 2 to 7 years."
+            },
+            {
+                question: "Who studies El Niño?",
+                keywords: ["meteorologists", "climatologists", "oceanographers", "scientists", "noaa", "nasa"],
+                explanation: "El Niño is studied by meteorologists, climatologists, oceanographers, and scientists from organizations like NOAA and NASA."
+            },
+            {
+                question: "Which regions are most affected by El Niño?",
+                keywords: ["global", "americas", "asia", "oceania", "australia", "south america", "africa"],
+                explanation: "El Niño affects global climate: causing droughts in Australia and Indonesia, heavy rains in South America, and disruptions worldwide."
+            },
+            {
+                question: "How does El Niño affect global climate?",
+                keywords: ["precipitation", "temperature", "rainfall", "drought", "flood", "hurricane"],
+                explanation: "El Niño alters precipitation and temperature patterns globally: causing droughts, floods, more intense hurricanes, and seasonal changes."
+            },
+            {
+                question: "What are the main consequences of El Niño?",
+                keywords: ["flood", "drought", "crop", "fire", "ecosystem", "marine", "coral", "fisheries"],
+                explanation: "El Niño produces flooding, droughts, crop losses, forest fires, coral bleaching, and fisheries collapse."
+            },
+            {
+                question: "How does El Niño affect agriculture?",
+                keywords: ["loss", "drought", "rain", "flood", "crop", "rice", "wheat", "coffee", "soy"],
+                explanation: "El Niño causes agricultural losses: droughts destroy crops in some regions while excess rainfall floods fields in others."
+            },
+            {
+                question: "What measures can mitigate El Niño's impacts?",
+                keywords: ["early warning", "monitoring", "water management", "resistant crops", "infrastructure", "emergency"],
+                explanation: "We can mitigate effects through early warning systems, water management, resistant crops, proper infrastructure, and emergency plans."
+            },
+            {
+                question: "What is the opposite of El Niño?",
+                keywords: ["la nina", "cooling", "cold"],
+                explanation: "La Niña is the opposite phenomenon, characterized by cooler than normal sea surface temperatures in the Pacific."
+            },
+            {
+                question: "How does El Niño affect marine life?",
+                keywords: ["fish", "coral", "ecosystem", "warm", "ocean", "species"],
+                explanation: "El Niño disrupts marine ecosystems by warming waters, causing coral bleaching and affecting fish populations."
+            }
+        ];
+
+        function startGame() {
+            playSound('start');
+            
+            player1.name = document.getElementById('player1Name').value.trim() || 'Player 1';
+            player2.name = document.getElementById('player2Name').value.trim() || 'Player 2';
+            
+            // Reset stats
+            player1.totalTime = 0;
+            player1.correctAnswers = 0;
+            player1.penalties = 0;
+            player2.totalTime = 0;
+            player2.correctAnswers = 0;
+            player2.penalties = 0;
+            
+            currentPlayer = 1;
+            currentQuestionIndex = 0;
+            elapsedTime = 0;
+            
+            // Shuffle and select questions for first round
+            questions = [...allQuestions].sort(() => Math.random() - 0.5);
+            roundQuestions = questions.slice(0, 7);
+            
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            updateTurnIndicator();
+            loadQuestion();
+            
+            // Start timer after a short delay
+            setTimeout(() => {
+                startTimer();
+            }, 500);
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turnIndicator');
+            if (currentPlayer === 1) {
+                document.getElementById('readerName').textContent = player2.name;
+                document.getElementById('answererName').textContent = player1.name;
+                indicator.classList.remove('player2-turn');
+            } else {
+                document.getElementById('readerName').textContent = player1.name;
+                document.getElementById('answererName').textContent = player2.name;
+                indicator.classList.add('player2-turn');
+            }
+        }
+
+        function loadQuestion() {
+            const question = roundQuestions[currentQuestionIndex];
+            document.getElementById('questionNumber').textContent = `Question ${currentQuestionIndex + 1}`;
+            document.getElementById('questionText').textContent = question.question;
+            document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+            document.getElementById('progressBar').style.width = `${(currentQuestionIndex / 7) * 100}%`;
+            
+            // Reset UI
+            document.getElementById('answerSection').textContent = 'Your answer will appear here...';
+            document.getElementById('answerSection').classList.remove('active');
+            document.getElementById('feedback').classList.remove('show');
+            document.getElementById('nextBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            document.getElementById('micStatus').textContent = 'Click to start speaking';
+            currentAnswer = '';
+        }
+
+        function startTimer() {
+            startTime = Date.now() - elapsedTime;
+            isTimerRunning = true;
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            timerInterval = setInterval(() => {
+                elapsedTime = Date.now() - startTime;
+                updateTimerDisplay();
+            }, 100);
+            
+            document.getElementById('timerDisplay').classList.add('running');
+            document.getElementById('timerDisplay').classList.remove('stopped');
+        }
+
+        function stopTimer() {
+            if (!isTimerRunning) return;
+            
+            playSound('stop');
+            isTimerRunning = false;
+            clearInterval(timerInterval);
+            stopListening();
+            
+            document.getElementById('timerDisplay').classList.remove('running');
+            document.getElementById('timerDisplay').classList.add('stopped');
+            document.getElementById('stopBtn').classList.add('hidden');
+            
+            evaluateAnswer();
+        }
+
+        function updateTimerDisplay() {
+            const totalSeconds = elapsedTime / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = Math.floor(totalSeconds % 60);
+            const tenths = Math.floor((totalSeconds % 1) * 10);
+            
+            document.getElementById('timerDisplay').textContent = 
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+        }
+
+        function toggleListening() {
+            playSound('click');
+            if (isListening) {
+                stopListening();
+            } else {
+                startListening();
+            }
+        }
+
+        function startListening() {
+            if (!recognition) {
+                alert('Speech recognition is not supported in your browser. Please use Chrome or Edge.');
+                return;
+            }
+
+            if (!isListening) {
+                isListening = true;
+                try {
+                    recognition.start();
+                    document.getElementById('micButton').classList.add('listening');
+                    document.getElementById('micStatus').textContent = 'Listening... Speak now!';
+                } catch (e) {
+                    console.error('Error starting recognition:', e);
+                    document.getElementById('micStatus').textContent = 'Error starting microphone. Please try again.';
+                    isListening = false;
+                }
+            }
+        }
+
+        function stopListening() {
+            if (isListening) {
+                isListening = false;
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.error('Error stopping recognition:', e);
+                }
+                document.getElementById('micButton').classList.remove('listening');
+                document.getElementById('micStatus').textContent = 'Click to start speaking';
+            }
+        }
+
+        function evaluateAnswer() {
+            const question = roundQuestions[currentQuestionIndex];
+            const userAnswer = currentAnswer.toLowerCase();
+            
+            // Check if answer contains keywords
+            const keywordMatches = question.keywords.filter(keyword => 
+                userAnswer.includes(keyword.toLowerCase())
+            );
+            
+            const matchPercentage = (keywordMatches.length / question.keywords.length) * 100;
+            const isCorrect = matchPercentage >= 40;
+            
+            const feedback = document.getElementById('feedback');
+            const questionTime = elapsedTime / 1000;
+            
+            if (isCorrect) {
+                playSound('correct');
+                feedback.className = 'feedback correct show';
+                feedback.innerHTML = `
+                    <h3>✅ Correct!</h3>
+                    <p>${question.explanation}</p>
+                    <p style="margin-top: 10px; font-weight: bold;">Time: ${questionTime.toFixed(1)}s</p>
+                `;
+                
+                // Add time to current player
+                if (currentPlayer === 1) {
+                    player1.totalTime += questionTime;
+                    player1.correctAnswers++;
+                } else {
+                    player2.totalTime += questionTime;
+                    player2.correctAnswers++;
+                }
+            } else {
+                playSound('incorrect');
+                const penalty = 10;
+                feedback.className = 'feedback incorrect show';
+                feedback.innerHTML = `
+                    <h3>❌ Incorrect</h3>
+                    <p><strong>Your answer:</strong> "${currentAnswer || 'No answer provided'}"</p>
+                    <p><strong>Correct answer:</strong> ${question.explanation}</p>
+                    <p style="margin-top: 10px; font-weight: bold; color: #dc3545;">+${penalty}s penalty!</p>
+                `;
+                
+                // Add time + penalty to current player
+                if (currentPlayer === 1) {
+                    player1.totalTime += questionTime + penalty;
+                    player1.penalties += penalty;
+                } else {
+                    player2.totalTime += questionTime + penalty;
+                    player2.penalties += penalty;
+                }
+            }
+            
+            document.getElementById('nextBtn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < 7) {
+                elapsedTime = 0;
+                loadQuestion();
+                startTimer();
+            } else {
+                // Switch players
+                if (currentPlayer === 1) {
+                    playSound('switch');
+                    currentPlayer = 2;
+                    currentQuestionIndex = 0;
+                    elapsedTime = 0;
+                    
+                    // Select new questions for player 2
+                    roundQuestions = questions.slice(7, 14);
+                    
+                    updateTurnIndicator();
+                    loadQuestion();
+                    
+                    // Show a message about switching
+                    const feedback = document.getElementById('feedback');
+                    feedback.className = 'feedback correct show';
+                    feedback.innerHTML = `
+                        <h3>🔄 Players Switch!</h3>
+                        <p>Now ${player2.name} will read and ${player1.name} will answer!</p>
+                    `;
+                    
+                    setTimeout(() => {
+                        feedback.classList.remove('show');
+                        startTimer();
+                    }, 2000);
+                } else {
+                    // Game over
+                    endGame();
+                }
+            }
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            stopListening();
+            
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('resultsScreen').classList.remove('hidden');
+            
+            // Update player stats
+            document.getElementById('player1FinalName').textContent = player1.name;
+            document.getElementById('player2FinalName').textContent = player2.name;
+            
+            document.getElementById('player1Time').textContent = formatTime(player1.totalTime);
+            document.getElementById('player2Time').textContent = formatTime(player2.totalTime);
+            
+            document.getElementById('player1Correct').textContent = `${player1.correctAnswers}/7`;
+            document.getElementById('player2Correct').textContent = `${player2.correctAnswers}/7`;
+            
+            document.getElementById('player1Penalties').textContent = `${player1.penalties}s`;
+            document.getElementById('player2Penalties').textContent = `${player2.penalties}s`;
+            
+            // Determine winner
+            let winnerName, winnerMessage;
+            
+            if (player1.totalTime < player2.totalTime) {
+                winnerName = player1.name;
+                const timeDiff = player2.totalTime - player1.totalTime;
+                winnerMessage = `Won by ${timeDiff.toFixed(1)} seconds! Amazing speed and knowledge!`;
+            } else if (player2.totalTime < player1.totalTime) {
+                winnerName = player2.name;
+                const timeDiff = player1.totalTime - player2.totalTime;
+                winnerMessage = `Won by ${timeDiff.toFixed(1)} seconds! Amazing speed and knowledge!`;
+            } else {
+                winnerName = "It's a Tie!";
+                winnerMessage = "Both players performed equally! Incredible!";
+            }
+            
+            document.getElementById('winnerName').textContent = winnerName;
+            document.getElementById('winnerMessage').textContent = winnerMessage;
+            
+            playSound('win');
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${String(secs).padStart(2, '0')}`;
+        }
+
+        function restartGame() {
+            playSound('click');
+            document.getElementById('resultsScreen').classList.add('hidden');
+            document.getElementById('setupScreen').classList.remove('hidden');
+        }
+
+        // Prevent right-click
+        document.addEventListener('contextmenu', event => event.preventDefault());
+    </script>
+</body>
+</html>
